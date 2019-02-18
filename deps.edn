@@ -1,0 +1,3 @@
+{:paths   ["src"]
+ :aliases {:tubular {:extra-deps {tubular {:mvn/version "1.3.0"}}
+                     :main-opts  ["-m" "tubular.core" "-p" "5555"]}}}
