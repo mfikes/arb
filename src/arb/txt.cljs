@@ -9,9 +9,11 @@
   ([file count-values max-value min-value values]
    (with-open [w (io/writer file)]
      (let [writeln (fn [x]
-                     (-write w (str x))
+                     (-write w (if (number? x)
+                                 (.toFixed x 6)
+                                 x))
                      (-write w "\n"))]
-       (writeln count-values)
+       (writeln (str count-values))
        (writeln max-value)
        (writeln min-value)
        (run! writeln values)
