@@ -10,6 +10,7 @@
    (with-open [w (io/writer file)]
      (let [writeln (fn [x]
                      (-write w (if (number? x)
+                                 ;; DG1022z can only accept 9 digits
                                  (.toFixed x 6)
                                  x))
                      (-write w "\n"))]

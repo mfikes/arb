@@ -17,38 +17,29 @@
 (defn values->points [low high values]
   (map (partial value->point low high) values))
 
-(defn number->bytes [bits n]
-  (mapv #(bit-and (bit-shift-right n %) 0xFF) (range 0 bits 8)))
+(defn spit
+  ([file values]
+   (let [low (apply min values)
+         high (apply max values)]
+     (spit file low high values)))
+  ([file low high values]
+   (with-open [os (io/output-stream file)]
+     (-write-bytes os
+       (points->bytes (values->points low high values))))))
 
-(defn output-mode->byte [output-mode]
-  (case output-mode
-    :period 0
-    :sample-rate 1))
-
-(defn filename->bytes [filename]
-  (let [unpadded (mapv #(.charCodeAt % 0) (take 25 filename))]
-    (into unpadded (repeat (- 25 (count unpadded)) 0))))
-
-(defn calculate-header [file rate low high values]
-  (-> []
-    (into (number->bytes 32 (count values)))
-    (into [1 0])
-    (into [(output-mode->byte :sample-rate)])
-    (into (filename->bytes "8.RAF"))
-    (into (number->bytes 32 rate))                          ; low-bytes of rate
-    (into [0 0 0 0])                                        ; high bytes of rate
-    (into (number->bytes 32 (* high 1e7)))                  ; high V
-    (into (number->bytes 32 (* low 1e7)))                   ; low V
-    (into (number->bytes 16 0xd650))                        ; data CRC
-    (into (number->bytes 16 0x1097))                        ; header CRC
-    (into [0 0 0 0])))
-
-(defn spit [file rate low high values]
-  (prn (points->bytes (values->points low high values)))
-  (with-open [os (io/output-stream file)]
-    (-write-bytes os
-      (into (calculate-header file rate low high values)
-        (points->bytes (values->points low high values))))))
+;; The DG1022z base model can read in 2e6 samples, and can play them at 60 MSa/s
 
 (comment
-  (spit "/Volumes/RIGOL/test.raf" 10000000 -1.5 2.5 [-1.5 -0.5 -1.5 0.5 -1.5 -1.5 -1.5 -1.5]))
+  (arb.raf/spit "/tmp/test.raf" -1.5 2.5 [-1.5 -0.5 -1.5 0.5 -1.5 -1.5 -1.5 -1.5])
+
+  ;; Sin wave modulated with an up ramp at 1/10th base frequency
+  (arb.raf/spit "/tmp/test.raf" -1.0 1.0 (map #(* (/ % 2e6) (Math/sin (* % 2 Math/PI (/ 1 2e5)))) (range 2e6)))
+
+  ;; Alternating Square / Sin
+  (arb.raf/spit "/tmp/sqsin.raf" (map (fn [idx] (if (even? (quot idx 1000))
+                                                   (if (even? (quot idx 100))
+                                                     1
+                                                     -1)
+                                                   (Math/sin (* idx 2 Math/PI (/ 1 2e2)))))
+                                    (range 2e6)))
+  )
