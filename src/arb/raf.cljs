@@ -3,6 +3,8 @@
     [planck.core :refer [with-open -write-bytes]]
     [planck.io :as io]))
 
+;; Illustrating making a change
+
 (defn point->bytes [point]
   [(bit-and point 0xFF) (bit-or (bit-shift-right point 8) 0x80)])
 
